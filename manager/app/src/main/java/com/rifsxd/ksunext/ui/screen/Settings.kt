@@ -204,6 +204,12 @@ private fun KernelFeaturesCard(
     scope: kotlinx.coroutines.CoroutineScope
 ) {
     val context = LocalContext.current
+    val suCompatSupported = suCompatStatus == "supported"
+    val kernelUmountSupported = kernelUmountStatus == "supported"
+    val sulogSupported = sulogStatusParam == "supported"
+    val adbRootSupported = adbRootStatus == "supported"
+    val selinuxHideSupported = selinuxHideStatus == "supported"
+    val avcSpoofSupported = avcSpoofStatus == "supported"
 
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -227,146 +233,160 @@ private fun KernelFeaturesCard(
                 }
             }
 
-            if (suCompatStatus == "supported") {
-                var isSuEnabled by rememberSaveable {
-                    mutableStateOf(Natives.isSuEnabled())
+            var isSuEnabled by rememberSaveable {
+                mutableStateOf(Natives.isSuEnabled())
+            }
+            SwitchItem(
+                icon = Icons.Filled.RemoveModerator,
+                title = stringResource(R.string.settings_enable_su),
+                summary = if (suCompatSupported) {
+                    stringResource(R.string.settings_enable_su_summary)
+                } else {
+                    stringResource(id = R.string.feature_status_unsupported_summary)
+                },
+                checked = isSuEnabled,
+                enabled = suCompatSupported,
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)),
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+            ) { checked ->
+                val prefsLocal = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+                if (Natives.setSuEnabled(checked)) {
+                    execKsud("feature save", true)
+                    prefsLocal.edit { putInt("su_compat_mode", if (checked) 0 else 2) }
+                    isSuEnabled = checked
                 }
-                SwitchItem(
-                    icon = Icons.Filled.RemoveModerator,
-                    title = stringResource(R.string.settings_enable_su),
-                    summary = stringResource(R.string.settings_enable_su_summary),
-                    checked = isSuEnabled,
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)),
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                ) { checked ->
+            }
+
+            var isKernelUmountEnabled by rememberSaveable {
+                mutableStateOf(Natives.isKernelUmountEnabled())
+            }
+            SwitchItem(
+                icon = Icons.Filled.RemoveCircle,
+                title = stringResource(id = R.string.settings_enable_kernel_umount),
+                summary = if (kernelUmountSupported) {
+                    stringResource(id = R.string.settings_enable_kernel_umount_summary)
+                } else {
+                    stringResource(id = R.string.feature_status_unsupported_summary)
+                },
+                checked = isKernelUmountEnabled,
+                enabled = kernelUmountSupported,
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)),
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+            ) { checked ->
+                val prefsLocal = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+                if (Natives.setKernelUmountEnabled(checked)) {
+                    execKsud("feature save", true)
+                    prefsLocal.edit { putInt("kernel_umount_mode", if (checked) 0 else 2) }
+                    isKernelUmountEnabled = checked
+                }
+            }
+
+            val sulogSummary = when (sulogStatusParam) {
+                "unsupported" -> stringResource(id = R.string.feature_status_unsupported_summary)
+                "managed" -> stringResource(id = R.string.feature_status_managed_summary)
+                else -> stringResource(id = R.string.settings_sulog_summary)
+            }
+            SwitchItem(
+                icon = Icons.AutoMirrored.Filled.Article,
+                title = stringResource(id = R.string.settings_sulog),
+                summary = sulogSummary,
+                checked = isSulogEnabled,
+                enabled = sulogSupported,
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)),
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+            ) { checked ->
+                if (execKsud("feature set sulog ${if (checked) 1 else 0}", true)) {
+                    execKsud("feature save", true)
+                    onSulogEnabledChange(checked)
+                }
+            }
+
+            var isAdbRootEnabled by rememberSaveable {
+                mutableStateOf(Natives.isAdbRootEnabled())
+            }
+            SwitchItem(
+                icon = Icons.Filled.Usb,
+                title = stringResource(id = R.string.settings_adb_root),
+                summary = if (adbRootSupported) {
+                    stringResource(id = R.string.settings_adb_root_summary)
+                } else {
+                    stringResource(id = R.string.feature_status_unsupported_summary)
+                },
+                checked = isAdbRootEnabled,
+                enabled = adbRootSupported,
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)),
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+            ) { checked ->
+                val prefsLocal = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+                if (Natives.setAdbRootEnabled(checked)) {
+                    execKsud("feature save", true)
+                    prefsLocal.edit { putInt("adb_root_mode", if (checked) 0 else 2) }
+                    com.topjohnwu.superuser.ShellUtils.fastCmd("setprop ctl.restart adbd")
+                    isAdbRootEnabled = checked
+                }
+            }
+
+            var isSelinuxHideEnabled by rememberSaveable {
+                mutableStateOf(Natives.isSelinuxHideEnabled())
+            }
+            SwitchItem(
+                icon = Icons.Filled.Policy,
+                title = stringResource(id = R.string.settings_selinux_hide),
+                summary = if (selinuxHideSupported) {
+                    stringResource(id = R.string.settings_selinux_hide_summary)
+                } else {
+                    stringResource(id = R.string.feature_status_unsupported_summary)
+                },
+                checked = isSelinuxHideEnabled,
+                enabled = selinuxHideSupported,
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)),
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+            ) { checked ->
+                scope.launch(Dispatchers.IO) {
                     val prefsLocal = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-                    if (Natives.setSuEnabled(checked)) {
-                        execKsud("feature save", true)
-                        prefsLocal.edit { putInt("su_compat_mode", if (checked) 0 else 2) }
-                        isSuEnabled = checked
-                    }
-                }
-            }
-
-            if (kernelUmountStatus == "supported") {
-                var isKernelUmountEnabled by rememberSaveable {
-                    mutableStateOf(Natives.isKernelUmountEnabled())
-                }
-                SwitchItem(
-                    icon = Icons.Filled.RemoveCircle,
-                    title = stringResource(id = R.string.settings_enable_kernel_umount),
-                    summary = stringResource(id = R.string.settings_enable_kernel_umount_summary),
-                    checked = isKernelUmountEnabled,
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)),
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                ) { checked ->
-                    val prefsLocal = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-                    if (Natives.setKernelUmountEnabled(checked)) {
-                        execKsud("feature save", true)
-                        prefsLocal.edit { putInt("kernel_umount_mode", if (checked) 0 else 2) }
-                        isKernelUmountEnabled = checked
-                    }
-                }
-            }
-
-            if (sulogStatusParam == "supported") {
-                val sulogSummary = when (sulogStatusParam) {
-                    "unsupported" -> stringResource(id = R.string.feature_status_unsupported_summary)
-                    "managed" -> stringResource(id = R.string.feature_status_managed_summary)
-                    else -> stringResource(id = R.string.settings_sulog_summary)
-                }
-                SwitchItem(
-                    icon = Icons.AutoMirrored.Filled.Article,
-                    title = stringResource(id = R.string.settings_sulog),
-                    summary = sulogSummary,
-                    checked = isSulogEnabled,
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)),
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                ) { checked ->
-                    if (execKsud("feature set sulog ${if (checked) 1 else 0}", true)) {
-                        execKsud("feature save", true)
-                        onSulogEnabledChange(checked)
-                    }
-                }
-            }
-
-            if (adbRootStatus == "supported") {
-                var isAdbRootEnabled by rememberSaveable {
-                    mutableStateOf(Natives.isAdbRootEnabled())
-                }
-                SwitchItem(
-                    icon = Icons.Filled.Usb,
-                    title = stringResource(id = R.string.settings_adb_root),
-                    summary = stringResource(id = R.string.settings_adb_root_summary),
-                    checked = isAdbRootEnabled,
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)),
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                ) { checked ->
-                    val prefsLocal = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-                    if (Natives.setAdbRootEnabled(checked)) {
-                        execKsud("feature save", true)
-                        prefsLocal.edit { putInt("adb_root_mode", if (checked) 0 else 2) }
-                        com.topjohnwu.superuser.ShellUtils.fastCmd("setprop ctl.restart adbd")
-                        isAdbRootEnabled = checked
-                    }
-                }
-            }
-
-            if (selinuxHideStatus == "supported") {
-                var isSelinuxHideEnabled by rememberSaveable {
-                    mutableStateOf(Natives.isSelinuxHideEnabled())
-                }
-                SwitchItem(
-                    icon = Icons.Filled.Policy,
-                    title = stringResource(id = R.string.settings_selinux_hide),
-                    summary = stringResource(id = R.string.settings_selinux_hide_summary),
-                    checked = isSelinuxHideEnabled,
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)),
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                ) { checked ->
-                    scope.launch(Dispatchers.IO) {
-                        val prefsLocal = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-                        val status = Natives.setSelinuxHideEnabled(checked)
-                        execKsud("feature save", true)
-                        prefsLocal.edit { putInt("selinux_hide_mode", if (checked) 0 else 2) }
-                        isSelinuxHideEnabled = checked
-                        when (status) {
-                            0 -> {}
-                            -OsConstants.EAGAIN -> {
-                                withContext(Dispatchers.Main) {
-                                    Toast.makeText(context, R.string.settings_selinux_hide_reboot_required,
-                                        Toast.LENGTH_LONG).show()
-                                }
+                    val status = Natives.setSelinuxHideEnabled(checked)
+                    execKsud("feature save", true)
+                    prefsLocal.edit { putInt("selinux_hide_mode", if (checked) 0 else 2) }
+                    isSelinuxHideEnabled = checked
+                    when (status) {
+                        0 -> {}
+                        -OsConstants.EAGAIN -> {
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(context, R.string.settings_selinux_hide_reboot_required,
+                                    Toast.LENGTH_LONG).show()
                             }
-                            else -> {
-                                withContext(Dispatchers.Main) {
-                                    Toast.makeText(context, context.getString(R.string.settings_selinux_hide_failed, status),
-                                        Toast.LENGTH_LONG).show()
-                                }
+                        }
+                        else -> {
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(context, context.getString(R.string.settings_selinux_hide_failed, status),
+                                    Toast.LENGTH_LONG).show()
                             }
                         }
                     }
                 }
             }
 
-            if (avcSpoofStatus == "supported") {
-                var isAvcSpoofEnabled by rememberSaveable {
-                    mutableStateOf(Natives.isAvcSpoofEnabled())
-                }
-                SwitchItem(
-                    icon = Icons.Filled.Shield,
-                    title = stringResource(id = R.string.settings_enable_avc_spoof),
-                    summary = stringResource(id = R.string.settings_enable_avc_spoof_summary),
-                    checked = isAvcSpoofEnabled,
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)),
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-                ) { checked ->
-                    val prefsLocal = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-                    if (Natives.setAvcSpoofEnabled(checked)) {
-                        execKsud("feature save", true)
-                        prefsLocal.edit { putInt("avc_spoof_mode", if (checked) 0 else 2) }
-                        isAvcSpoofEnabled = checked
-                    }
+            var isAvcSpoofEnabled by rememberSaveable {
+                mutableStateOf(Natives.isAvcSpoofEnabled())
+            }
+            SwitchItem(
+                icon = Icons.Filled.Shield,
+                title = stringResource(id = R.string.settings_enable_avc_spoof),
+                summary = if (avcSpoofSupported) {
+                    stringResource(id = R.string.settings_enable_avc_spoof_summary)
+                } else {
+                    stringResource(id = R.string.feature_status_unsupported_summary)
+                },
+                checked = isAvcSpoofEnabled,
+                enabled = avcSpoofSupported,
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)),
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+            ) { checked ->
+                val prefsLocal = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+                if (Natives.setAvcSpoofEnabled(checked)) {
+                    execKsud("feature save", true)
+                    prefsLocal.edit { putInt("avc_spoof_mode", if (checked) 0 else 2) }
+                    isAvcSpoofEnabled = checked
                 }
             }
         }
