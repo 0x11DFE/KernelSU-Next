@@ -91,7 +91,7 @@ object Natives {
      */
     external fun getAppProfile(key: String?, uid: Int): Profile
     external fun setAppProfile(profile: Profile?): Boolean
-
+     
     /**
      * `su` compat mode can be disabled temporarily.
      *  0: disabled
@@ -133,6 +133,7 @@ object Natives {
      */
     external fun getUserName(uid: Int): String?
 
+
     /**
      * Avc spoof can be enabled/disabled.
      *  0: disabled
@@ -144,6 +145,7 @@ object Natives {
 
     external fun getSuperuserCount(): Int
 
+    private const val KSU_GET_INFO_FLAG_MANAGER = 1 shl 1
     private const val NON_ROOT_DEFAULT_PROFILE_KEY = "$"
     private const val NOBODY_UID = 9999
 
@@ -163,7 +165,7 @@ object Natives {
             return it.umountModules
         }
     }
-
+    
     val kernelUAPIVersion: Int
         external get
 

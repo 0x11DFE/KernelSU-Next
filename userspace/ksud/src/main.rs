@@ -39,11 +39,15 @@ mod module_config;
 #[cfg(target_os = "android")]
 mod profile;
 #[cfg(target_os = "android")]
+mod risk;
+#[cfg(target_os = "android")]
 mod resetprop;
 #[cfg(target_os = "android")]
 mod restorecon;
 #[cfg(target_os = "android")]
 mod sepolicy;
+#[cfg(target_os = "android")]
+mod soft_reboot;
 #[cfg(target_os = "android")]
 mod su;
 #[cfg(target_os = "android")]
