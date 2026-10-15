@@ -183,6 +183,8 @@
     <string name="open">Open</string>
     <string name="enable_web_debugging">Enable WebView debugging</string>
     <string name="enable_web_debugging_summary">Can be used to debug WebUI. Please enable only when needed.</string>
+    <string name="soft_reboot_after_module_flash">Soft reboot after module flash</string>
+    <string name="soft_reboot_after_module_flash_summary">Use an emulated soft reboot instead of a full device reboot after flashing modules.</string>
     <string name="direct_install">Direct install (Recommended)</string>
     <string name="select_file">Select a file</string>
     <string name="flash_module">Flash Module</string>

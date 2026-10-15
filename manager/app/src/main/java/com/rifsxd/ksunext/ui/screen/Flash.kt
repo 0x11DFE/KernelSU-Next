@@ -111,6 +111,7 @@ fun FlashScreen(
 
     val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
     val developerOptionsEnabled = prefs.getBoolean("enable_developer_options", false)
+    val softRebootAfterModuleFlash = prefs.getBoolean("soft_reboot_after_module_flash", false)
 
     val activity = context.findActivity()
 
@@ -247,7 +248,7 @@ fun FlashScreen(
                     onClick = {
                         scope.launch {
                             withContext(Dispatchers.IO) {
-                                reboot()
+                                reboot(if (softRebootAfterModuleFlash) "soft-reboot" else "")
                             }
                         }
                     },
