@@ -249,6 +249,7 @@ class MainActivity : FragmentActivity() {
         }
 
         val prefsInit = getSharedPreferences("settings", MODE_PRIVATE)
+        val enableStartupAnimation = prefsInit.getBoolean("enable_startup_animation", true)
         val requireBiometric = prefsInit.getBoolean("enable_biometric_lock", false)
 
         if (savedInstanceState != null) {
@@ -262,7 +263,7 @@ class MainActivity : FragmentActivity() {
 
         setContent { Box(modifier = Modifier.fillMaxSize()) {
             KernelSUTheme(amoledMode = amoledModeState.value) {
-                var showSplash by remember { mutableStateOf(true) }
+                var showSplash by remember { mutableStateOf(enableStartupAnimation) }
                 var splashRotationTarget by remember { mutableStateOf(0f) }
                 val splashRotation by animateFloatAsState(
                     targetValue = splashRotationTarget,
